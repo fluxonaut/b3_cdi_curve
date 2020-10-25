@@ -17,7 +17,6 @@ initial_date = date(year=2003, month=8, day=8)
 latest_date = date.today() - BDay(1)
 output_dir = "./output/"
 
-
 def save_dataframe(df: pd.DataFrame, df_name: str):
 
     df_path = output_dir + df_name
@@ -32,7 +31,7 @@ def try_get_local_dataframe(df_name: str) -> Tuple[bool, pd.DataFrame]:
         return (
             True,
             pd.read_csv(filepath, compression="gzip").astype(
-                {"duration": int, "252": float, "360": float}
+                {"duration": int, "base252": float, "base360": float}
             ),
         )
     return (False, None)
@@ -49,8 +48,8 @@ def parse_html(html_content: str) -> Tuple[bool, pd.DataFrame]:
     dtypes = np.dtype(
         [
             ("duration", int),
-            ("252", float),
-            ("360", float),
+            ("base252", float),
+            ("base360", float),
         ]
     )
     data = np.empty(0, dtype=dtypes)
@@ -91,7 +90,7 @@ def get_db_connection() -> sqlite3.Connection:
 
     if not db_cursor.fetchone():
         conn.execute(
-            "CREATE TABLE cdi (date TEXT, value REAL, base INTEGER, duration INTEGER);"
+            "CREATE TABLE cdi (date TEXT, value REAL, base TEXT, duration INTEGER);"
         )
 
     db_cursor.close()
@@ -106,15 +105,17 @@ def get_latest_date(db_conn: sqlite3.Connection) -> Tuple[bool, pd.Timestamp]:
     result = db_cursor.fetchone()
     db_cursor.close()
 
-    if len(result) == 0:
+    if result == None or len(result) == 0:
         return (False, None)
 
-    return (True, pd.Timestamp(datetime.strptime(result[0], "%Y%m%d"), tz=None))
+    return (True, pd.Timestamp(datetime.strptime(result[0], "%Y-%m-%d"), tz=None))
 
 
 def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
 
     print("start: update_db(_, save_all_files:" + str(save_all_files) + ")")
+    
+    last_request_time = datetime.now()
 
     db_has_entries, last_db_date = get_latest_date(db_conn)
 
@@ -160,9 +161,12 @@ def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
         start_date = start_date + BDay(1)
 
         # Good practice to avoid flooding others with requests, remove at your own risk
-        time.sleep(2)
+        min_interval_between_requests = 2
+        time_since_last_request = (datetime.now() - last_request_time).total_seconds()
+        if time_since_last_request < min_interval_between_requests:
+            time.sleep(min_interval_between_requests - time_since_last_request)        
+        last_request_time = datetime.now()
 
-    db_conn.commit()
     print("end: save_all_files()")
 
 
@@ -170,19 +174,19 @@ def upsert_data(dt: pd.Timestamp, df: pd.DataFrame, db_conn: sqlite3.Connection)
 
     db_cursor = db_conn.cursor()
 
-    bases = [252, 360]
+    bases = ["base252", "base360"]
     date = dt.strftime("%Y-%m-%d")
     for base in bases:
-        for index, row in df.iterrows():
-            val = row[str(base)]
+        for row in df.itertuples():
+            val = getattr(row, base)
             if math.isnan(val):
                 continue
 
             doc = {
                 "date": f"'{date}'",
-                "base": str(base),
-                "duration": str(int(row["duration"])),
-                "value": str(float(row[str(base)])),
+                "base": f"'{base}'",
+                "duration": str(getattr(row, "duration")),
+                "value": str(getattr(row, base)),
             }
 
             columns = ", ".join(doc.keys())
@@ -190,7 +194,9 @@ def upsert_data(dt: pd.Timestamp, df: pd.DataFrame, db_conn: sqlite3.Connection)
             query = f"INSERT INTO cdi ({columns}) VALUES ({values});"
             db_cursor.execute(query)
 
+    db_conn.commit()
     db_cursor.close()
+    print(str(datetime.now()) + ": Saved data from " + date + " to DB.")
 
 
 print("> start script")
