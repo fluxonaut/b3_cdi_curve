@@ -17,6 +17,7 @@ initial_date = date(year=2003, month=8, day=8)
 latest_date = date.today() - BDay(1)
 output_dir = "./output/"
 
+
 def save_dataframe(df: pd.DataFrame, df_name: str):
 
     df_path = output_dir + df_name
@@ -90,7 +91,7 @@ def get_db_connection() -> sqlite3.Connection:
 
     if not db_cursor.fetchone():
         conn.execute(
-            "CREATE TABLE cdi (date TEXT, value REAL, base TEXT, duration INTEGER);"
+            "CREATE TABLE cdi (date TEXT, base252 REAL, base360 REAL, duration INTEGER);"
         )
 
     db_cursor.close()
@@ -113,8 +114,8 @@ def get_latest_date(db_conn: sqlite3.Connection) -> Tuple[bool, pd.Timestamp]:
 
 def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
 
-    print("start: update_db(_, save_all_files:" + str(save_all_files) + ")")
-    
+    print(f"start: update_db(_, save_all_files: {save_all_files})")
+
     last_request_time = datetime.now()
 
     db_has_entries, last_db_date = get_latest_date(db_conn)
@@ -153,7 +154,7 @@ def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
             start_date = start_date + BDay(1)
             continue
 
-        upsert_data(start_date, df, db_conn)
+        insert_data(start_date, df, db_conn)
 
         if save_all_files:
             save_dataframe(df, filename)
@@ -164,31 +165,32 @@ def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
         min_interval_between_requests = 2
         time_since_last_request = (datetime.now() - last_request_time).total_seconds()
         if time_since_last_request < min_interval_between_requests:
-            time.sleep(min_interval_between_requests - time_since_last_request)        
+            time.sleep(min_interval_between_requests - time_since_last_request)
         last_request_time = datetime.now()
 
-    print("end: save_all_files()")
+    print("end: update_db()")
 
 
-def upsert_data(dt: pd.Timestamp, df: pd.DataFrame, db_conn: sqlite3.Connection):
+def insert_data(dt: pd.Timestamp, df: pd.DataFrame, db_conn: sqlite3.Connection):
 
     db_cursor = db_conn.cursor()
 
     bases = ["base252", "base360"]
     date = dt.strftime("%Y-%m-%d")
-    for base in bases:
-        for row in df.itertuples():
+
+    for row in df.itertuples():
+        doc = {
+            "date": f"'{date}'",
+            "duration": str(getattr(row, "duration")),
+        }
+
+        for base in bases:
             val = getattr(row, base)
             if math.isnan(val):
                 continue
+            doc[base] = str(val)
 
-            doc = {
-                "date": f"'{date}'",
-                "base": f"'{base}'",
-                "duration": str(getattr(row, "duration")),
-                "value": str(getattr(row, base)),
-            }
-
+        if any([d in doc for d in bases]):
             columns = ", ".join(doc.keys())
             values = ", ".join(doc.values())
             query = f"INSERT INTO cdi ({columns}) VALUES ({values});"
@@ -196,7 +198,25 @@ def upsert_data(dt: pd.Timestamp, df: pd.DataFrame, db_conn: sqlite3.Connection)
 
     db_conn.commit()
     db_cursor.close()
-    print(str(datetime.now()) + ": Saved data from " + date + " to DB.")
+    print(str(datetime.now()) + f": Saved data from {date} to DB.")
+
+
+def create_time_series(db_conn: sqlite3.Connection, duration: int):
+
+    print(f"start: create_time_series({duration}, _)")
+
+    db_cursor = db_conn.cursor()
+    query = f"SELECT date, base252, base360 FROM cdi WHERE duration={duration};"
+    db_cursor.execute(query)
+    result = db_cursor.fetchall()
+    db_cursor.close()
+
+    df = pd.DataFrame(result, columns=["date", "base252", "base360"]).astype(
+        {"date": np.datetime64, "base252": float, "base360": float}
+    )
+    df.to_csv(output_dir + f"cdi_duration{duration}.csv", index=False)
+
+    print("end: create_time_series({duration}, _)")
 
 
 print("> start script")
@@ -205,7 +225,10 @@ if not os.path.isdir(output_dir):
     os.mkdir(output_dir)
 
 db_conn = get_db_connection()
+
 update_db(db_conn, False)
+create_time_series(db_conn, 360) #CHOOSE THE DESIRED DURATION
+
 db_conn.close()
 
 print("> end")
