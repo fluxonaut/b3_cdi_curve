@@ -132,7 +132,7 @@ def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
         filename = "CDI_Curve_" + start_date.strftime("%Y%m%d") + ".gzip"
         has_local_file, local_df = try_get_local_dataframe(filename)
         if has_local_file:
-            upsert_data(start_date, local_df, db_conn)
+            insert_data(start_date, local_df, db_conn)
             start_date = start_date + BDay(1)
             continue
 
@@ -227,7 +227,7 @@ if not os.path.isdir(output_dir):
 db_conn = get_db_connection()
 
 update_db(db_conn, False)
-create_time_series(db_conn, 360) #CHOOSE THE DESIRED DURATION
+create_time_series(db_conn, 360)  # Choose the desired duration
 
 db_conn.close()
 
