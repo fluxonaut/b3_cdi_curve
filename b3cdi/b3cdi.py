@@ -18,6 +18,11 @@ latest_date = date.today() - BDay(1)
 output_dir = "./output/"
 
 
+def check_create_output_folder():
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+
 def save_dataframe(df: pd.DataFrame, df_name: str):
 
     df_path = output_dir + df_name
@@ -112,9 +117,13 @@ def get_latest_date(db_conn: sqlite3.Connection) -> Tuple[bool, pd.Timestamp]:
     return (True, pd.Timestamp(datetime.strptime(result[0], "%Y-%m-%d"), tz=None))
 
 
-def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
+def update_db(save_all_files: bool = False, verbose: bool = False):
 
-    print(f"start: update_db(_, save_all_files: {save_all_files})")
+    print(f"start: update_db()")
+
+    check_create_output_folder()
+
+    db_conn = get_db_connection()
 
     last_request_time = datetime.now()
 
@@ -168,6 +177,8 @@ def update_db(db_conn: sqlite3.Connection, save_all_files: bool):
             time.sleep(min_interval_between_requests - time_since_last_request)
         last_request_time = datetime.now()
 
+    db_conn.close()
+
     print("end: update_db()")
 
 
@@ -201,34 +212,29 @@ def insert_data(dt: pd.Timestamp, df: pd.DataFrame, db_conn: sqlite3.Connection)
     print(str(datetime.now()) + f": Saved data from {date} to DB.")
 
 
-def create_time_series(db_conn: sqlite3.Connection, duration: int):
+def create_time_series(duration: int):
 
-    print(f"start: create_time_series({duration}, _)")
+    print(f"start: create_time_series({duration})")
 
+    check_create_output_folder()
+
+    db_conn = get_db_connection()
     db_cursor = db_conn.cursor()
+
     query = f"SELECT date, base252, base360 FROM cdi WHERE duration={duration};"
     db_cursor.execute(query)
     result = db_cursor.fetchall()
+
     db_cursor.close()
+    db_conn.close()
 
     df = pd.DataFrame(result, columns=["date", "base252", "base360"]).astype(
         {"date": np.datetime64, "base252": float, "base360": float}
     )
-    df.to_csv(output_dir + f"cdi_duration{duration}.csv", index=False)
 
-    print("end: create_time_series({duration}, _)")
+    filename = output_dir + f"cdi_duration{duration}.csv"
 
+    df.to_csv(filename, index=False)
+    print(f"Series saved to {filename}")
 
-print("> start script")
-
-if not os.path.isdir(output_dir):
-    os.mkdir(output_dir)
-
-db_conn = get_db_connection()
-
-update_db(db_conn, False)
-create_time_series(db_conn, 360)  # Choose the desired duration
-
-db_conn.close()
-
-print("> end")
+    print(f"end: create_time_series({duration})")

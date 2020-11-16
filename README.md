@@ -1,20 +1,18 @@
 # B3 CDI Curve by Fluxonaut
 
-This repo contains a Python script that extracts, consolidates and interpolates data from the Brazilian CDI Curve provided on the B3 Exchange web site.
+This package is a collection of Python scripts that extracts, consolidates and interpolates data from the Brazilian CDI Curve provided on the B3 Exchange web site.
 It allows you to produce a historical data series for any given duration (considering it respects the maximum available duration). It stores all the term structure of the CDI curve in a local SQLite database as well.
 
 ## Setup
 
-This repo contains a requirements.txt file with all the required dependencies. 
-It was built and tested with Python 3.7.4.
-Use pip to download the dependencies you'll need (more about pip and requirements.txt). 
+Just install from PyPi as shown below. 
 
 ```bash
-pip install -r requirements.txt
+pip install b3-cdi-curve
 ```
 ## Usage
 
-The script contains two "major" methods:
+The package exposes contains two methods:
 
 #### update_db
 
@@ -26,17 +24,14 @@ It has a 2 seconds minimum delay between each hit to prevent generating too many
 
 After it runs once, it'll check for the last inserted date, so it'll look only for working days after the last update. This keeps the database updated for each time you run the code.
 
-
-
 #### create_time_series
 
 ```python
-create_time_series(db_conn: sqlite3.Connection, duration: int)
+create_time_series(duration: int)
 ```
 
 This method queries the database to produce a Pandas DataFrame with the historical series of the requested duration. It then saves it as a CSV file on the ./output/ folder.
-**The second parameter of the method is where you input your desired duration.**
-
+**The parameter of the method is where you input your desired duration (e.g. 360).**
 
 ## Contributing
 Pull requests are welcome. Please open an issue first to discuss what you would like to change.
@@ -44,8 +39,6 @@ Pull requests are welcome. Please open an issue first to discuss what you would 
 ## To-do
 - [ ] Tests
 - [ ] Optimize db size
-- [ ] Create package from script
-
 
 ## Fluxonaut
 This code was made possible by the amazing people working at Fluxonaut who dedicated their free time to help the community. Please be sure to check our our website at https://fluxonaut.com.
