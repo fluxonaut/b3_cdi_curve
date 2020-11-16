@@ -3,34 +3,45 @@
 This package is a collection of Python scripts that extracts, consolidates and interpolates data from the Brazilian CDI Curve provided on the B3 Exchange web site.
 It allows you to produce a historical data series for any given duration (considering it respects the maximum available duration). It stores all the term structure of the CDI curve in a local SQLite database as well.
 
-## Setup
+## Setup and usage
 
 Just install from PyPi as shown below. 
 
 ```bash
 pip install b3-cdi-curve
 ```
-## Usage
 
-The package exposes contains two methods:
+Now just import it to your project. The package exposes two methods, **update_db()** and **create_time_series(duration: int)**. 
+Below you can find a basic usage example and a more detailed explanation.
 
-#### update_db
+```python
+import b3cdi
 
-This method loops through all the dates between the start and end dates looking for the prices on the B3 web site. It generates and saves a SQLite database (located on ./output/cdi.db).
+# Create and/or update local DB
+b3cdi.update_db()
+
+# Create time series for the desired duration
+b3cdi.create_time_series(360)
+```
+
+### **update_db**
+
+This method loops through all the dates between the beginning of the series and the last working day looking for the prices on the B3 web site. It then generates and saves a local SQLite database (located on ./output/cdi.db).
 
 It has a 2 seconds minimum delay between each hit to prevent generating too many requests. This means that the first time you run this script, it'll take quite some time to get all the files. 
 
-**The first run takes around two and half hours to build the database (respecting the minimum delay for requests) and it takes around 1.3 GB of disk space.**
+**The first run takes around two and half hours to build the database (respecting the minimum delay for requests) and it takes around 1.35 GB of disk space.**
 
 After it runs once, it'll check for the last inserted date, so it'll look only for working days after the last update. This keeps the database updated for each time you run the code.
 
-#### create_time_series
+
+### **create_time_series**
 
 ```python
 create_time_series(duration: int)
 ```
 
-This method queries the database to produce a Pandas DataFrame with the historical series of the requested duration. It then saves it as a CSV file on the ./output/ folder.
+This method queries the local database to produce a Pandas DataFrame with the historical series of the requested duration. It then saves it as a CSV file on the ./output/ folder.
 **The parameter of the method is where you input your desired duration (e.g. 360).**
 
 ## Contributing
@@ -45,4 +56,3 @@ This code was made possible by the amazing people working at Fluxonaut who dedic
 
 ## License
 This project is under the [MIT](https://opensource.org/licenses/MIT) license.
-
