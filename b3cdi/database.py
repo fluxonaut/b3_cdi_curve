@@ -7,7 +7,7 @@ from typing import Tuple
 
 def get_db_connection(output_dir) -> sqlite3.Connection:
 
-    filepath = output_dir + "cdi.db"
+    filepath = f"{output_dir}/cdi.db"
     conn = sqlite3.connect(filepath)
     db_cursor = conn.cursor()
     db_cursor.execute(

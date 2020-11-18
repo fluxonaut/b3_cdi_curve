@@ -13,7 +13,7 @@ from pandas.tseries.offsets import BDay
 console = Console(log_path=False)
 
 
-def create_time_series(duration: int, output_dir="output/"):
+def create_time_series(duration: int, output_dir="output"):
 
     console.log(f"Creating time series for ({duration})...")
 
@@ -33,14 +33,14 @@ def create_time_series(duration: int, output_dir="output/"):
         {"date": np.datetime64, "base252": float, "base360": float}
     )
 
-    filename = output_dir + f"cdi_duration{duration}.csv"
+    filename = f"{output_dir}/cdi_duration{duration}.csv"
 
     df.to_csv(filename, index=False)
     console.log(f"Series saved to {filename}")
 
 
-def sync_db(save_all_files: bool = False, verbose: bool = False, output_dir="output/"):
-    initial_date = date(year=2020, month=8, day=8)
+def sync_db(save_all_files: bool = False, verbose: bool = False, output_dir="output"):
+    initial_date = date(year=2003, month=8, day=8)
     latest_date = date.today() - BDay(1)
 
     check_create_output_folder(output_dir)

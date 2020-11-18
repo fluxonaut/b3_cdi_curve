@@ -9,13 +9,13 @@ def check_create_output_folder(output_dir):
 
 
 def save_dataframe(df: pd.DataFrame, df_name: str, output_dir):
-    df_path = output_dir + df_name
+    df_path = f"{output_dir}/{df_name}"
     df.to_csv(df_path, index=False, compression="gzip")
 
 
 def get_local_dataframe(df_name: str, output_dir) -> Tuple[bool, pd.DataFrame]:
 
-    filepath = output_dir + df_name
+    filepath = f"{output_dir}/{df_name}"
     if os.path.isfile(filepath):
         return (
             True,
