@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="b3-cdi-curve",
-    version="1.0.0",
+    version="1.2.0",
     description="Create a local DB with the term structure of the Brazilian CDI curve (data from B3).",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -32,5 +32,6 @@ setup(
         "requests>=2.24.0",
         "html5lib>=1.1",
         "scipy>=1.5.3",
+        "rich>=9.2.0",
     ],
 )

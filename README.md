@@ -5,7 +5,7 @@ It allows you to produce a historical data series for any given duration (consid
 
 ## Setup and usage
 
-Just install from PyPi as shown below.
+Just install from PyPI as shown below.
 
 ```bash
 pip install b3-cdi-curve
@@ -20,16 +20,16 @@ import b3cdi
 # Create and/or update local DB
 b3cdi.sync_db()
 
-# Create time series for the desired duration
+# Create time series for the desired duration (in days)
 b3cdi.create_time_series(360)
 ```
-![Creating database](./docs/creating_db.png)
+![Creating database](https://github.com/fluxonaut/b3_cdi_curve/raw/master/docs/creating_db.png)
 
 ### **sync_db**
 
 This method loops through all the dates between the beginning of the series and the last working day looking for the prices on the B3 web site. It then generates and saves a local SQLite database (located on ./output/cdi.db).
 
-**The first run takes around two and half hours to build the database (respecting the minimum delay for requests) and it takes around 1.35 GB of disk space.**
+**The first run takes around two and half hours to build the database and it takes around 1.35 GB of disk space.**
 
 After it runs once, it'll check for the last inserted date, so it'll look only for working days after the last update. This keeps the database updated for each time you run the code.
 
