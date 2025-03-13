@@ -30,7 +30,7 @@ def create_time_series(duration: int, output_dir="output"):
     db_conn.close()
 
     df = pd.DataFrame(result, columns=["date", "base252", "base360"]).astype(
-        {"date": np.datetime64, "base252": float, "base360": float}
+        {"date": "datetime64[ns]", "base252": float, "base360": float}
     )
 
     filename = f"{output_dir}/cdi_duration{duration}.csv"
@@ -76,8 +76,10 @@ def process_day(day, output_dir, db_conn, save_all_files=False):
         return
 
     url = (
-        "http://www2.bmf.com.br/pages/portal/bmfbovespa/lumis/lum-taxas-referenciais-bmf-ptBR.asp?Data="
+        "https://www2.bmf.com.br/pages/portal/bmfbovespa/lumis/lum-taxas-referenciais-bmf-ptBR.asp?Data="
         f"{day.strftime('%d/%m/%Y')}"
+        "&Data1="
+        f"{day.strftime('%Y%m%d')}"
         "&slcTaxa=PRE"
     )
 
